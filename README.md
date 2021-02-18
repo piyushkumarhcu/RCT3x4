@@ -9,5 +9,5 @@ source setEnv.sh
 
 For HLS synthesis of RCT3x4
 ```bash
-cd $AP_FW_BASE_DIR/RCT3x4/vivado_hls/
+cd $AP_FW_BASE_DIR/RCT3x4/RCT3x4/vivado_hls/
 vivado_hls -f run_hls.tcl
