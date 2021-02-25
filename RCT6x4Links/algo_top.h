@@ -242,7 +242,7 @@ class tower_t {
 class towerHCAL{
     public:
     ap_uint<10> towerEt;
-    ap_uint<10> fb;
+    ap_uint<6> fb;
 
     towerHCAL(){
         towerEt = 0;
@@ -259,7 +259,7 @@ class towerHCAL{
         this->towerEt = i.range(9, 0);
     	this->fb = i.range(15, 10);
     }
-}
+};
 
 typedef struct {
 tower_t tower0 ;
