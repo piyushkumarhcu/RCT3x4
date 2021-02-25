@@ -1,4 +1,4 @@
-#include "algo_top_hcal.h"
+#include "algo_top.h"
 #include "bitonicSort16.h"
 
 void processOutputLinks(hls::stream<algo::axiword384> &link, ap_uint<384> bigdataword){

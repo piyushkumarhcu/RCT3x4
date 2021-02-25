@@ -1,5 +1,5 @@
-#ifndef _ALGO_TOP_HCAL_H_
-#define _ALGO_TOP_HCAL_H_
+#ifndef _ALGO_TOP_H_
+#define _ALGO_TOP_H_
 
 #include <iostream>
 #include <ap_axi_sdata.h>
