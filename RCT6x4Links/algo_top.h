@@ -126,7 +126,7 @@ class Cluster{
     ap_uint<2> towerPhi() {return ((data >> 17) & 0x3);}
     ap_uint<3> clusterEta() {return ((data >> 19) & 0x7);}
     ap_uint<3> clusterPhi() {return ((data >> 22) & 0x7);}
-    ap_uint<3> staur() {return ((data >> 25) & 0x7);}
+    ap_uint<3> satur() {return ((data >> 25) & 0x7);}
 
 };
 
