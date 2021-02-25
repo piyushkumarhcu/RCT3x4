@@ -127,6 +127,8 @@ class Cluster{
     ap_uint<3> clusterEta() {return ((data >> 19) & 0x7);}
     ap_uint<3> clusterPhi() {return ((data >> 22) & 0x7);}
     ap_uint<3> satur() {return ((data >> 25) & 0x7);}
+	
+    operator uint32_t() {return (ap_uint<28>) data;}
 
 };
 
@@ -236,6 +238,8 @@ class tower_t {
     ap_uint<12> et() {return (data & 0xFFF);}
     ap_uint<3> hoe() {return ((data >> 12) & 0x7);}
     ap_uint<1> satur() {return ((data >> 15) & 0x2);}
+	
+    operator uint16_t() {return (uint16_t) data;}
 
 };
 
