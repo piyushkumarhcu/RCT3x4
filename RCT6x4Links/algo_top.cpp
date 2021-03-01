@@ -91,7 +91,7 @@ void processInputLinks(hls::stream<algo::axiword> link[N_INPUT_LINKS], crystal t
 ecalRegion_t initStructure(crystal temporary[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4]){
 
 #pragma HLS ARRAY_PARTITION variable=temporary complete dim=0
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 
 ap_uint<5> Phi = 2 ;
 ap_uint<5> Eta = 2 ;
@@ -418,7 +418,7 @@ return out ;
 }
 
 ecaltp_t bestOf2(const ecaltp_t& ecaltp0, const ecaltp_t& ecaltp1) {
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 //#pragma HLS inline
  if (ecaltp0.energy > ecaltp1.energy)
    return ecaltp0 ;
@@ -427,7 +427,7 @@ ecaltp_t bestOf2(const ecaltp_t& ecaltp0, const ecaltp_t& ecaltp1) {
 }
 
 ecaltp_t getPeakBin20N(const etaStrip_t& etaStrip){
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 
 ecaltp_t best01 = bestOf2(etaStrip.cr0,etaStrip.cr1) ;
 ecaltp_t best23 = bestOf2(etaStrip.cr2,etaStrip.cr3) ;
@@ -456,7 +456,7 @@ return bestOf20 ;
 }
 
 crystalMax getPeakBin15N(const etaStripPeak_t& etaStrip){
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 
 crystalMax x;
 
@@ -486,7 +486,7 @@ return x ;
 }
 
 region3x4_t getTowerEt(crystal tempX[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], Cluster unselCluster[5]){
-        #pragma HLS PIPELINE II=6
+        //#pragma HLS PIPELINE II=6
         #pragma HLS ARRAY_PARTITION variable=tempX complete dim=0
         #pragma HLS ARRAY_PARTITION variable=unselCluster complete dim=0
 
@@ -547,7 +547,7 @@ region3x4_t getTowerEt(crystal tempX[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], Cluste
 }
 
 clusterInfo getClusterPosition(const ecalRegion_t& ecalRegion){
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 
         etaStripPeak_t etaStripPeak;
         clusterInfo cluster ;
@@ -583,7 +583,7 @@ return cluster ;
 }
 
 Cluster packCluster(ap_uint<15>& clusterEt, ap_uint<5>& etaMax_t, ap_uint<5>& phiMax_t){
-        #pragma HLS PIPELINE II=6
+        //#pragma HLS PIPELINE II=6
         //#pragma HLS inline
         ap_uint<12> peggedEt;
         Cluster pack;
@@ -602,7 +602,7 @@ return pack;
 
 Cluster getRegion3x4(crystal temp[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4]){
 #pragma HLS ARRAY_PARTITION variable=temp complete dim=0
-#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=6
 
 Cluster returnCluster;
 ecalRegion_t ecalRegion;
