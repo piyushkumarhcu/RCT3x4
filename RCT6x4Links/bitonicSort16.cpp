@@ -5,7 +5,8 @@ GreaterSmaller AscendDescend( Cluster &x,  Cluster &y){
 #pragma HLS PIPELINE II=6
 #pragma HLS INLINE
     GreaterSmaller s;
-
+	
+    s.greater = (x.clusterEnergy() > y.clusterEnergy()) ? x : y;
     s.smaller = (x.clusterEnergy() > y.clusterEnergy()) ? y : x;
 
     return s;
