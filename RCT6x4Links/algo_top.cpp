@@ -1,25 +1,23 @@
 #include "algo_top.h"
-#include "bitonicSort16.h"
+#include "bitonicSort8.h"
 
-void processOutputLinks(hls::stream<algo::axiword> &link, ap_uint<384> bigdataword){
+void processOutputLinks(hls::stream<algo::axiword384> &link, ap_uint<384> bigdataword){
         #pragma HLS INTERFACE axis port=link
-        //#pragma HLS PIPELINE II=6
-        #pragma HLS INLINE
+//        #pragma HLS INLINE
 
-        algo::axiword rOut;
+        algo::axiword384 rOut;
         rOut.user = 0;
         rOut.last = 1;
         rOut.data = bigdataword;
         link.write(rOut);
 }
 
-void processInputLinks(hls::stream<algo::axiword> link[N_INPUT_LINKS], crystal temporary[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], crystal temporary1[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], towerHCAL region4x4_1[HCAL_TOWER_IN_ETA][HCAL_TOWER_IN_PHI], towerHCAL region4x4_2[HCAL_TOWER_IN_ETA][HCAL_TOWER_IN_PHI]){
+void processInputLinks(hls::stream<algo::axiword384> link[N_INPUT_LINKS], crystal temporary[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], crystal temporary1[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], towerHCAL region4x4_1[HCAL_TOWER_IN_ETA][HCAL_TOWER_IN_PHI], towerHCAL region4x4_2[HCAL_TOWER_IN_ETA][HCAL_TOWER_IN_PHI]){
         #pragma HLS INTERFACE axis port=link
         #pragma HLS ARRAY_PARTITION variable=temporary complete dim=0
         #pragma HLS ARRAY_PARTITION variable=temporary1 complete dim=0
         #pragma HLS ARRAY_PARTITION variable=region4x4_1 complete dim=0
         #pragma HLS ARRAY_PARTITION variable=region4x4_2 complete dim=0
-        //#pragma HLS PIPELINE II=6
 
         ap_uint<384> bigDataWord[N_INPUT_LINKS];
         #pragma HLS ARRAY_PARTITION variable=bigDataWord complete dim=0
@@ -31,50 +29,24 @@ void processInputLinks(hls::stream<algo::axiword> link[N_INPUT_LINKS], crystal t
 
         size_t start = 0; 
         size_t end = 13;
+  
+        ap_uint<6> wordId, wordId1, startId ;
 
-        for(loop i=0; i<5; i++){
-                //#pragma HLS UNROLL
-                for(loop j=0; j<5; j++){
+        
+        for(loop i=0; i<CRYSTAL_IN_ETA; i++){
+                #pragma HLS UNROLL
+                for(loop j=0; j<CRYSTAL_IN_PHI; j++){
                         #pragma HLS UNROLL
-                        temporary[i+2][j+2] = crystal(bigDataWord[0].range(end, start));
-                        temporary1[i+2][j+2] = crystal(bigDataWord[12].range(end, start));
+                       wordId = (i/5)*4+(j/5) ;
+                       wordId1 = wordId + 12 ;
+                       startId = (i%5)*5+(j%5) ;
+                       start = startId*14 ; end = start + 13 ;
 
-                        temporary[i+2][j+7] = crystal(bigDataWord[1].range(end, start));
-                        temporary1[i+2][j+7] = crystal(bigDataWord[13].range(end, start));
+                       temporary[i][j] = crystal(bigDataWord[wordId].range(end, start));
+                       temporary1[i][j] = crystal(bigDataWord[wordId1].range(end, start));
+ 
+         }}
 
-                        temporary[i+2][j+12] = crystal(bigDataWord[2].range(end, start));
-                        temporary1[i+2][j+12] = crystal(bigDataWord[14].range(end, start));
-
-                        temporary[i+2][j+17] = crystal(bigDataWord[3].range(end, start));
-                        temporary1[i+2][j+17] = crystal(bigDataWord[15].range(end, start));
-
-                        temporary[i+7][j+2] = crystal(bigDataWord[4].range(end, start));
-                        temporary1[i+7][j+2] = crystal(bigDataWord[16].range(end, start));
-
-                        temporary[i+7][j+7] = crystal(bigDataWord[5].range(end, start));
-                        temporary1[i+7][j+7] = crystal(bigDataWord[17].range(end, start));
-
-                        temporary[i+7][j+12] = crystal(bigDataWord[6].range(end, start));
-                        temporary1[i+7][j+12] = crystal(bigDataWord[18].range(end, start));
-
-                        temporary[i+7][j+17] = crystal(bigDataWord[7].range(end, start));
-                        temporary1[i+7][j+17] = crystal(bigDataWord[19].range(end, start));
-
-                        temporary[i+12][j+2] = crystal(bigDataWord[8].range(end, start));
-                        temporary1[i+12][j+2] = crystal(bigDataWord[20].range(end, start));
-
-                        temporary[i+12][j+7] = crystal(bigDataWord[9].range(end, start));
-                        temporary1[i+12][j+7] = crystal(bigDataWord[21].range(end, start));
-
-                        temporary[i+12][j+12] = crystal(bigDataWord[10].range(end, start));
-                        temporary1[i+12][j+12] = crystal(bigDataWord[22].range(end, start));
-
-                        temporary[i+12][j+17] = crystal(bigDataWord[11].range(end, start));
-                        temporary1[i+12][j+17] = crystal(bigDataWord[23].range(end, start));
-
-                        start += 14; end += 14;
-                }
-        }
 
         start = 0; end = 15;
         for(loop i=0; i<HCAL_TOWER_IN_ETA; i++){
@@ -88,13 +60,14 @@ void processInputLinks(hls::stream<algo::axiword> link[N_INPUT_LINKS], crystal t
         }
 }
 
-ecalRegion_t initStructure(crystal temporary[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4]){
+ecalRegion_t initStructure(crystal temporary[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI]){
 
 #pragma HLS ARRAY_PARTITION variable=temporary complete dim=0
 //#pragma HLS PIPELINE II=6
+//#pragma HLS INLINE off
 
-ap_uint<5> Phi = 2 ;
-ap_uint<5> Eta = 2 ;
+ap_uint<5> Phi = 0 ;
+ap_uint<5> Eta = 0 ;
 
 ecalRegion_t out;
 
@@ -418,16 +391,15 @@ return out ;
 }
 
 ecaltp_t bestOf2(const ecaltp_t& ecaltp0, const ecaltp_t& ecaltp1) {
-//#pragma HLS PIPELINE II=6
-//#pragma HLS inline
- if (ecaltp0.energy > ecaltp1.energy)
-   return ecaltp0 ;
- else
-   return ecaltp1 ;
+        ecaltp_t x;
+        x = (ecaltp0.energy > ecaltp1.energy)?ecaltp0:ecaltp1;
+
+        return x;
 }
 
 ecaltp_t getPeakBin20N(const etaStrip_t& etaStrip){
-//#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=2
+#pragma HLS latency min=4
 
 ecaltp_t best01 = bestOf2(etaStrip.cr0,etaStrip.cr1) ;
 ecaltp_t best23 = bestOf2(etaStrip.cr2,etaStrip.cr3) ;
@@ -456,7 +428,8 @@ return bestOf20 ;
 }
 
 crystalMax getPeakBin15N(const etaStripPeak_t& etaStrip){
-//#pragma HLS PIPELINE II=6
+//#pragma HLS PIPELINE II=2
+#pragma HLS latency min=4
 
 crystalMax x;
 
@@ -485,37 +458,53 @@ ecaltp_t bestOf15 = bestOf2(best01234567,best891011121314) ;
 return x ;
 }
 
-region3x4_t getTowerEt(crystal tempX[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], Cluster unselCluster[5]){
-        //#pragma HLS PIPELINE II=6
+void getTowerEt(crystal tempX[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], ap_uint<12> towerEt[12]){
+        #pragma HLS PIPELINE II=6
+        #pragma HLS latency min=4
         #pragma HLS ARRAY_PARTITION variable=tempX complete dim=0
-        #pragma HLS ARRAY_PARTITION variable=unselCluster complete dim=0
-
-        region3x4_t towerCal;
-        ap_uint<12> towerEt[12];
         #pragma HLS ARRAY_PARTITION variable=towerEt complete dim=0
 
-        for(loop i=0; i<12; i++){
-                #pragma HLS unroll
-                towerEt[i] = 0;
-        }
 
-        for(loop i=0; i<5; i++){
-                //#pragma HLS UNROLL
-                        towerEt[0] = towerEt[0] + tempX[i+2][2].energy + tempX[i+2][3].energy + tempX[i+2][4].energy + tempX[i+2][5].energy + tempX[i+2][6].energy;
-                        towerEt[1] = towerEt[1] + tempX[i+2][7].energy + tempX[i+2][8].energy + tempX[i+2][9].energy + tempX[i+2][10].energy + tempX[i+2][11].energy;
-                        towerEt[2] = towerEt[2] + tempX[i+2][12].energy + tempX[i+2][13].energy + tempX[i+2][14].energy + tempX[i+2][15].energy + tempX[i+2][16].energy;
-                        towerEt[3] = towerEt[3] + tempX[i+2][17].energy + tempX[i+2][18].energy + tempX[i+2][19].energy + tempX[i+2][20].energy + tempX[i+2][21].energy;
-                        //second row in eta
-                        towerEt[4] = towerEt[4] + tempX[i+7][2].energy + tempX[i+7][3].energy + tempX[i+7][4].energy + tempX[i+7][5].energy + tempX[i+7][6].energy;
-                        towerEt[5] = towerEt[5] + tempX[i+7][7].energy + tempX[i+7][8].energy + tempX[i+7][9].energy + tempX[i+7][10].energy + tempX[i+7][11].energy;
-                        towerEt[6] = towerEt[6] + tempX[i+7][12].energy + tempX[i+7][13].energy + tempX[i+7][14].energy + tempX[i+7][15].energy + tempX[i+7][16].energy;
-                        towerEt[7] = towerEt[7] + tempX[i+7][17].energy + tempX[i+7][18].energy + tempX[i+7][19].energy + tempX[i+7][20].energy + tempX[i+7][21].energy;
-                        //third row in eta
-                        towerEt[8] = towerEt[8] + tempX[i+12][2].energy + tempX[i+12][3].energy + tempX[i+12][4].energy + tempX[i+12][5].energy + tempX[i+12][6].energy;
-                        towerEt[9] = towerEt[9] + tempX[i+12][7].energy + tempX[i+12][8].energy + tempX[i+12][9].energy + tempX[i+12][10].energy + tempX[i+12][11].energy;
-                        towerEt[10] = towerEt[10] + tempX[i+12][12].energy + tempX[i+12][13].energy + tempX[i+12][14].energy + tempX[i+12][15].energy + tempX[i+12][16].energy;
-                        towerEt[11] = towerEt[11] + tempX[i+12][17].energy + tempX[i+12][18].energy + tempX[i+12][19].energy + tempX[i+12][20].energy + tempX[i+12][21].energy;
-        }
+        ap_uint<10>  temp[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI] ;
+        #pragma HLS ARRAY_PARTITION variable=temp complete dim=0
+
+        region3x4_t towerCal;
+        ap_uint<12> towerEtN[3][4][5] ;
+        #pragma HLS ARRAY_PARTITION variable=towerEtN complete dim=0
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+            temp[i][k] = tempX[i][k].energy ;
+         }}
+
+         for(loop6 i=0; i<CRYSTAL_IN_ETA; i=i+5){
+              #pragma HLS UNROLL
+              for(loop6 k=0; k<CRYSTAL_IN_PHI; k=k+5){
+                 #pragma HLS UNROLL
+                 towerEtN[i/5][k/5][0] = temp[i][k] + temp[i][k+1] + temp[i][k+2] + temp[i][k+3] + temp[i][k+4] ;
+                 towerEtN[i/5][k/5][1] = temp[i+1][k] + temp[i+1][k+1] + temp[i+1][k+2] + temp[i+1][k+3] + temp[i+1][k+4] ;
+                 towerEtN[i/5][k/5][2] = temp[i+2][k] + temp[i+2][k+1] + temp[i+2][k+2] + temp[i+2][k+3] + temp[i+2][k+4] ;
+                 towerEtN[i/5][k/5][3] = temp[i+3][k] + temp[i+3][k+1] + temp[i+3][k+2] + temp[i+3][k+3] + temp[i+3][k+4] ;
+                 towerEtN[i/5][k/5][4] = temp[i+4][k] + temp[i+4][k+1] + temp[i+4][k+2] + temp[i+4][k+3] + temp[i+4][k+4] ;
+          }}
+
+                towerEt[0]= towerEtN[0][0][0] + towerEtN[0][0][1] + towerEtN[0][0][2] + towerEtN[0][0][3] + towerEtN[0][0][4] ;
+                towerEt[1]= towerEtN[0][1][0] + towerEtN[0][1][1] + towerEtN[0][1][2] + towerEtN[0][1][3] + towerEtN[0][1][4] ;
+                towerEt[2]= towerEtN[0][2][0] + towerEtN[0][2][1] + towerEtN[0][2][2] + towerEtN[0][2][3] + towerEtN[0][2][4] ;
+                towerEt[3]= towerEtN[0][3][0] + towerEtN[0][3][1] + towerEtN[0][3][2] + towerEtN[0][3][3] + towerEtN[0][3][4] ;
+                towerEt[4]= towerEtN[1][0][0] + towerEtN[1][0][1] + towerEtN[1][0][2] + towerEtN[1][0][3] + towerEtN[1][0][4] ;
+                towerEt[5]= towerEtN[1][1][0] + towerEtN[1][1][1] + towerEtN[1][1][2] + towerEtN[1][1][3] + towerEtN[1][1][4] ;
+                towerEt[6]= towerEtN[1][2][0] + towerEtN[1][2][1] + towerEtN[1][2][2] + towerEtN[1][2][3] + towerEtN[1][2][4] ;
+                towerEt[7]= towerEtN[1][3][0] + towerEtN[1][3][1] + towerEtN[1][3][2] + towerEtN[1][3][3] + towerEtN[1][3][4] ;
+                towerEt[8]= towerEtN[2][0][0] + towerEtN[2][0][1] + towerEtN[2][0][2] + towerEtN[2][0][3] + towerEtN[2][0][4] ;
+                towerEt[9]= towerEtN[2][1][0] + towerEtN[2][1][1] + towerEtN[2][1][2] + towerEtN[2][1][3] + towerEtN[2][1][4] ;
+                towerEt[10]= towerEtN[2][2][0] + towerEtN[2][2][1] + towerEtN[2][2][2] + towerEtN[2][2][3] + towerEtN[2][2][4] ;
+                towerEt[11]= towerEtN[2][3][0] + towerEtN[2][3][1] + towerEtN[2][3][2] + towerEtN[2][3][3] + towerEtN[2][3][4] ;
+
+
+/*
 
         for(loop k=0; k<5; k++){
                 if(unselCluster[k].towerEta() < 3){
@@ -529,6 +518,7 @@ region3x4_t getTowerEt(crystal tempX[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], Cluste
                         towerEt[4*(eta_2-3)+phi_2] = towerEt[4*(eta_2-3)+phi_2] + unselCluster[k].clusterEnergy();
                 }
         }
+
 
         towerCal.tower0 = tower_t(towerEt[0], 0, 0);
         towerCal.tower1 = tower_t(towerEt[1], 0, 0);
@@ -544,13 +534,16 @@ region3x4_t getTowerEt(crystal tempX[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4], Cluste
         towerCal.tower11 = tower_t(towerEt[11], 0, 0);
 
         return towerCal;
+*/
+
 }
 
 clusterInfo getClusterPosition(const ecalRegion_t& ecalRegion){
-//#pragma HLS PIPELINE II=6
+#pragma HLS latency min=4
 
         etaStripPeak_t etaStripPeak;
         clusterInfo cluster ;
+
 
                 etaStripPeak.pk0 = getPeakBin20N(ecalRegion.etaStrip0);
                 etaStripPeak.pk1 = getPeakBin20N(ecalRegion.etaStrip1);
@@ -583,8 +576,7 @@ return cluster ;
 }
 
 Cluster packCluster(ap_uint<15>& clusterEt, ap_uint<5>& etaMax_t, ap_uint<5>& phiMax_t){
-        //#pragma HLS PIPELINE II=6
-        //#pragma HLS inline
+        
         ap_uint<12> peggedEt;
         Cluster pack;
 
@@ -600,88 +592,305 @@ Cluster packCluster(ap_uint<15>& clusterEt, ap_uint<5>& etaMax_t, ap_uint<5>& ph
 return pack;
 }
 
-Cluster getRegion3x4(crystal temp[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4]){
+void RemoveTmp(crystal temp[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], ap_uint<5> seed_eta,  ap_uint<5> seed_phi, ap_uint<2> brems  ){
 #pragma HLS ARRAY_PARTITION variable=temp complete dim=0
-//#pragma HLS PIPELINE II=6
+#pragma HLS latency min=3
 
-Cluster returnCluster;
-ecalRegion_t ecalRegion;
-clusterInfo cluster_tmp;
-
-ap_uint<2> brems;
-
-        ap_uint<15> et[5][5], bremset1[5][5], bremset2[5][5] ;
-#pragma HLS ARRAY_PARTITION variable=et complete dim=0
-#pragma HLS ARRAY_PARTITION variable=bremset1 complete dim=0
-#pragma HLS ARRAY_PARTITION variable=bremset2 complete dim=0
-
-        ap_uint<15> etSum[5], etSumB1[5], etSumB2[5] ;
-#pragma HLS ARRAY_PARTITION variable=etSum complete dim=0
-#pragma HLS ARRAY_PARTITION variable=etSumB1 complete dim=0
-#pragma HLS ARRAY_PARTITION variable=etSumB2 complete dim=0
-
-        ap_uint<15> etSum5x5[5], etSum2x5_1[5], etSum2x5_2[5] ;
-#pragma HLS ARRAY_PARTITION variable=etSum5x5 complete dim=0
-#pragma HLS ARRAY_PARTITION variable=etSum2x5_1 complete dim=0
-#pragma HLS ARRAY_PARTITION variable=etSum2x5_2 complete dim=0
-
-        ap_uint<15> BremsE1, BremsE2 ;
-        ap_uint<15> et2x5_1Tot, et2x5_2Tot, etSum2x5 ;
-        ap_uint<15> et5x5Tot ;
-
-        ecalRegion = initStructure(temp) ;
-
-        cluster_tmp = getClusterPosition(ecalRegion) ;
-
-//        ap_uint<5> seed_phiRegion = cluster_tmp.phiMax ;
-//        we need to add 2 since we have position in 17x20 but 21x24 in array
-        ap_uint<5> seed_phi = cluster_tmp.phiMax+2 ;
-
-//        ap_uint<5> seed_etaRegion = cluster_tmp.etaMax ;
-        ap_uint<5> seed_eta = cluster_tmp.etaMax+2 ;
-
-        for(loop i=0; i<5; i++){
+        for(loop i=0; i<CRYSTAL_IN_ETA; i++){
+//                        #pragma HLS UNROLL
+           for(loop k=0; k<CRYSTAL_IN_PHI; k++){
                         #pragma HLS UNROLL
-           for(loop k=0; k<5; k++){
+            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2 && k<=seed_phi+2)  temp[i][k].energy = 0 ;
+         }}
+
+        if(brems == 1){
+        for(loop i=0; i<CRYSTAL_IN_ETA; i++){
+//                        #pragma HLS UNROLL
+           for(loop k=0; k<CRYSTAL_IN_PHI; k++){
                         #pragma HLS UNROLL
-           et[i][k] = temp[seed_eta+i-2][seed_phi+k-2].energy;
-           ap_uint<5> seedPhi1 = seed_phi+k-2-5 ;
-           ap_uint<5> seedPhi2 = seed_phi+k-2+5 ;
-           if( seedPhi1 >= 0 && seedPhi1 < CRYSTAL_IN_PHI+4) bremset1[i][k]=temp[seed_eta+i-2][seedPhi1].energy ;
-           else bremset1[i][k] = 0 ;
-           if( seedPhi2 >= 0 && seedPhi2 < CRYSTAL_IN_PHI+4) bremset1[i][k]=temp[seed_eta+i-2][seedPhi2].energy ;
-           else bremset2[i][k] = 0 ;
-
-        }}
-
-        for(loop k=0; k<5; k++){
-                        #pragma HLS UNROLL
-           etSum[k] = 0 ; etSumB1[k]=0 ; etSumB2[k]=0;
-           etSum[k]=etSum[k]+et[1][k]+et[2][k]+et[3][k];
-           etSumB1[k]=etSumB1[k]+bremset1[1][k]+bremset1[2][k]+bremset1[3][k] ;
-           etSumB2[k]=etSumB2[k]+bremset2[1][k]+bremset2[2][k]+bremset2[3][k] ;
-        }
-
-         cluster_tmp.energy=etSum[0]+etSum[1]+etSum[2]+etSum[3]+etSum[4] ;
-         BremsE1=etSumB1[0]+etSumB1[1]+etSumB1[2]+etSumB1[3]+etSumB1[4] ;
-         BremsE2=etSumB2[0]+etSumB2[1]+etSumB2[2]+etSumB2[3]+etSumB2[4] ;
-
-         if(BremsE1 > cluster_tmp.energy/8 && BremsE1 > BremsE2) {
-            cluster_tmp.energy = cluster_tmp.energy + BremsE1 ; cluster_tmp.brems = 1 ;}
-         else if(BremsE2 > cluster_tmp.energy/8){
-            cluster_tmp.energy = cluster_tmp.energy + BremsE2 ; cluster_tmp.brems = 2 ;}
-
-        for(loop k=0; k<5; k++){
-           #pragma HLS UNROLL
-           etSum5x5[k] = 0 ; etSum2x5_1[k]=0 ; etSum2x5_2[k]=0;
-           etSum5x5[k]=etSum5x5[k]+et[0][k]+et[1][k]+et[2][k]+et[3][k]+et[4][k];
-           etSum2x5_1[k]=etSum2x5_1[k]+et[1][k]+et[2][k];
-           etSum2x5_2[k]=etSum2x5_2[k]+et[2][k]+et[3][k];
+            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2-5 && k<=seed_phi+2-5)  temp[i][k].energy = 0 ;
+                        }
+                }
          }
 
-          et5x5Tot = etSum5x5[0]+etSum5x5[1]+etSum5x5[2]+etSum5x5[3]+etSum5x5[4] ;
-          et2x5_1Tot = etSum2x5_1[1]+etSum2x5_1[2] ;
-          et2x5_2Tot = etSum2x5_2[2]+etSum2x5_2[3] ;
+        if(brems == 2){
+        for(loop i=0; i<CRYSTAL_IN_ETA; i++){
+//                        #pragma HLS UNROLL
+           for(loop k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2+5 && k<=seed_phi+2+5)  temp[i][k].energy = 0 ;
+         }}}
+}
+
+
+
+clusterInfo getBremsValuesPos(crystal tempX[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], ap_uint<5> seed_eta,  ap_uint<5> seed_phi ){
+#pragma HLS ARRAY_PARTITION variable=tempX complete dim=0
+#pragma HLS latency min=6
+
+        ap_uint<12> temp[CRYSTAL_IN_ETA+2][CRYSTAL_IN_PHI+4] ;
+#pragma HLS ARRAY_PARTITION variable=temp complete dim=0
+
+        ap_uint<12> phi0eta[3], phi1eta[3], phi2eta[3], phi3eta[3], phi4eta[3] ;
+#pragma HLS ARRAY_PARTITION variable=phi0eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi1eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi2eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi3eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi4eta complete dim=0
+
+        ap_uint<12> eta_slice[3] ;
+#pragma HLS ARRAY_PARTITION variable=eta_slice complete dim=0
+
+clusterInfo cluster_tmp;
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA+2; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI+4; k++){
+                        #pragma HLS UNROLL
+            temp[i][k] = 0 ;
+         }}
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=5; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+            temp[i+1][k-3] = tempX[i][k].energy ;
+         }}
+
+
+        ap_uint<6> seed_eta1,  seed_phi1 ;
+//        seed_eta1 = seed_eta+1 ;
+//        seed_phi1 = seed_phi+2-5 ;
+//        seed_eta/phi are in 15x20
+
+        seed_eta1 = seed_eta ; //to start from corner
+        seed_phi1 = seed_phi ; //to start from corner
+// now we are in the left bottom corner 
+
+        for(loop6 j=0; j<CRYSTAL_IN_ETA; j++){
+//                        #pragma HLS UNROLL
+            if(j == seed_eta1)
+              {
+           for(loop6 k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+              if(k == seed_phi1)
+                 {
+                  phi0eta[0] = temp[j][k];
+                  phi1eta[0] = temp[j][k+1];
+                  phi2eta[0] = temp[j][k+2];
+                  phi3eta[0] = temp[j][k+3];
+                  phi4eta[0] = temp[j][k+4];
+
+                  phi0eta[1] = temp[j+1][k];
+                  phi1eta[1] = temp[j+1][k+1];
+                  phi2eta[1] = temp[j+1][k+2];
+                  phi3eta[1] = temp[j+1][k+3];
+                  phi4eta[1] = temp[j+1][k+4];
+                        
+                  phi0eta[2] = temp[j+2][k];
+                  phi1eta[2] = temp[j+2][k+1];
+                  phi2eta[2] = temp[j+2][k+2];
+                  phi3eta[2] = temp[j+2][k+3];
+                  phi4eta[2] = temp[j+2][k+4];
+
+		continue ;
+               }}
+          }}
+
+
+       for(loop i=0; i<3; i++){
+                        #pragma HLS UNROLL
+          eta_slice[i] = phi0eta[i] + phi1eta[i] + phi2eta[i] + phi3eta[i] + phi4eta[i] ;
+        }
+         cluster_tmp.energy=eta_slice[0] + eta_slice[1] + eta_slice[2] ;
+
+return cluster_tmp ;
+}
+
+clusterInfo getBremsValuesNeg(crystal tempX[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], ap_uint<5> seed_eta,  ap_uint<5> seed_phi ){
+#pragma HLS ARRAY_PARTITION variable=tempX complete dim=0
+#pragma HLS latency min=6
+
+        ap_uint<12> temp[CRYSTAL_IN_ETA+2][CRYSTAL_IN_PHI+4] ;
+#pragma HLS ARRAY_PARTITION variable=temp complete dim=0
+
+        ap_uint<12> phi0eta[3], phi1eta[3], phi2eta[3], phi3eta[3], phi4eta[3] ;
+#pragma HLS ARRAY_PARTITION variable=phi0eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi1eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi2eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi3eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi4eta complete dim=0
+
+        ap_uint<12> eta_slice[3] ;
+#pragma HLS ARRAY_PARTITION variable=eta_slice complete dim=0
+
+clusterInfo cluster_tmp;
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA+2; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI+4; k++){
+                        #pragma HLS UNROLL
+            temp[i][k] = 0 ;
+         }}
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI-5; k++){
+                        #pragma HLS UNROLL
+            temp[i+1][k+7] = tempX[i][k].energy ;
+         }}
+
+
+        ap_uint<6> seed_eta1,  seed_phi1 ;
+//        seed_eta1 = seed_eta+1 ;
+//        seed_phi1 = seed_phi+2+5 ;
+//        seed_eta/phi are in 15x20
+
+        seed_eta1 = seed_eta ; //to start from corner
+        seed_phi1 = seed_phi ; //to start from corner
+// now we are in the left bottom corner 
+
+        for(loop6 j=0; j<CRYSTAL_IN_ETA; j++){
+//                        #pragma HLS UNROLL
+            if(j == seed_eta1)
+              {
+           for(loop6 k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+                if(k == seed_phi1)
+                 {
+                  phi0eta[0] = temp[j][k];
+                  phi1eta[0] = temp[j][k+1];
+                  phi2eta[0] = temp[j][k+2];
+                  phi3eta[0] = temp[j][k+3];
+                  phi4eta[0] = temp[j][k+4];
+
+                  phi0eta[1] = temp[j+1][k];
+                  phi1eta[1] = temp[j+1][k+1];
+                  phi2eta[1] = temp[j+1][k+2];
+                  phi3eta[1] = temp[j+1][k+3];
+                  phi4eta[1] = temp[j+1][k+4];
+                        
+                  phi0eta[2] = temp[j+2][k];
+                  phi1eta[2] = temp[j+2][k+1];
+                  phi2eta[2] = temp[j+2][k+2];
+                  phi3eta[2] = temp[j+2][k+3];
+                  phi4eta[2] = temp[j+2][k+4];
+
+		continue ;
+               }}
+          }}
+
+
+       for(loop i=0; i<3; i++){
+                        #pragma HLS UNROLL
+          eta_slice[i] = phi0eta[i] + phi1eta[i] + phi2eta[i] + phi3eta[i] + phi4eta[i] ;
+        }
+         cluster_tmp.energy=eta_slice[0] + eta_slice[1] + eta_slice[2] ;
+
+return cluster_tmp ;
+}
+
+
+clusterInfo getClusterValues(crystal tempX[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI], ap_uint<5> seed_eta,  ap_uint<5> seed_phi ){
+#pragma HLS ARRAY_PARTITION variable=tempX complete dim=0
+#pragma HLS latency min=6
+
+        ap_uint<12> temp[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4] ;
+#pragma HLS ARRAY_PARTITION variable=temp complete dim=0
+
+        ap_uint<12> phi0eta[5], phi1eta[5], phi2eta[5], phi3eta[5], phi4eta[5] ;
+#pragma HLS ARRAY_PARTITION variable=phi0eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi1eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi2eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi3eta complete dim=0
+#pragma HLS ARRAY_PARTITION variable=phi4eta complete dim=0
+
+        ap_uint<12> eta_slice[5] ;
+#pragma HLS ARRAY_PARTITION variable=eta_slice complete dim=0
+
+
+        ap_uint<12> et2x5_1Tot, et2x5_2Tot, etSum2x5 ;
+        ap_uint<12> et5x5Tot ;
+
+clusterInfo cluster_tmp;
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA+4; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI+4; k++){
+                        #pragma HLS UNROLL
+            temp[i][k] = 0 ;
+         }}
+
+        for(loop6 i=0; i<CRYSTAL_IN_ETA; i++){
+                        #pragma HLS UNROLL
+           for(loop6 k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+            temp[i+2][k+2] = tempX[i][k].energy ;
+         }}
+
+
+        ap_uint<6> seed_eta1,  seed_phi1 ;
+//        seed_eta1 = seed_eta+2 ;
+//        seed_phi1 = seed_phi+2 ;
+//        seed_eta/phi are in 15x20
+
+        seed_eta1 = seed_eta ; //to start from corner
+        seed_phi1 = seed_phi ; //to start from corner
+// now we are in the left bottom corner 
+
+        for(loop6 j=0; j<CRYSTAL_IN_ETA; j++){
+//                        #pragma HLS UNROLL
+            if(j == seed_eta1)
+              {
+           for(loop6 k=0; k<CRYSTAL_IN_PHI; k++){
+                        #pragma HLS UNROLL
+              if(k == seed_phi1)
+                 {
+                  phi0eta[0] = temp[j][k];
+                  phi1eta[0] = temp[j][k+1];
+                  phi2eta[0] = temp[j][k+2];
+                  phi3eta[0] = temp[j][k+3];
+                  phi4eta[0] = temp[j][k+4];
+
+                  phi0eta[1] = temp[j+1][k];
+                  phi1eta[1] = temp[j+1][k+1];
+                  phi2eta[1] = temp[j+1][k+2];
+                  phi3eta[1] = temp[j+1][k+3];
+                  phi4eta[1] = temp[j+1][k+4];
+                        
+                  phi0eta[2] = temp[j+2][k];
+                  phi1eta[2] = temp[j+2][k+1];
+                  phi2eta[2] = temp[j+2][k+2];
+                  phi3eta[2] = temp[j+2][k+3];
+                  phi4eta[2] = temp[j+2][k+4];
+
+                  phi0eta[3] = temp[j+3][k];
+                  phi1eta[3] = temp[j+3][k+1];
+                  phi2eta[3] = temp[j+3][k+2];
+                  phi3eta[3] = temp[j+3][k+3];
+                  phi4eta[3] = temp[j+3][k+4];
+
+                  phi0eta[4] = temp[j+4][k];
+                  phi1eta[4] = temp[j+4][k+1];
+                  phi2eta[4] = temp[j+4][k+2];
+                  phi3eta[4] = temp[j+4][k+3];
+                  phi4eta[4] = temp[j+4][k+4];
+
+		continue ;
+               }}
+          }}
+
+
+       for(loop i=0; i<5; i++){
+                        #pragma HLS UNROLL
+          eta_slice[i] = phi0eta[i] + phi1eta[i] + phi2eta[i] + phi3eta[i] + phi4eta[i] ;
+        }
+         cluster_tmp.energy=eta_slice[1] + eta_slice[2] + eta_slice[3] ;
+
+          et5x5Tot = eta_slice[0] + eta_slice[1] + eta_slice[2] + eta_slice[3] + eta_slice[4] ;
+          et2x5_1Tot = eta_slice[1] + eta_slice[2] ;
+          et2x5_2Tot = eta_slice[2] + eta_slice[3] ;
+
 
           if(et2x5_1Tot >= et2x5_2Tot) etSum2x5 = et2x5_1Tot ;
           else etSum2x5 = et2x5_2Tot ;
@@ -689,53 +898,69 @@ ap_uint<2> brems;
           cluster_tmp.et5x5 = et5x5Tot ;
           cluster_tmp.et2x5 = etSum2x5 ;
 
-// here we start to reset temp and this is the problem
-// when we try to call it next time to create cluster
-// it says too complicated tor me to pipeline
-//
-/*
-        for(loop i=0; i<3; i++){
-                        #pragma HLS UNROLL
-           for(loop k=0; k<5; k++){
-                        #pragma HLS UNROLL
-              temp[seed_eta+i-1][seed_phi+k-2] = 0 ;
-         }}
-*/
-        for(loop i=0; i<CRYSTAL_IN_ETA+4; i++){
-                        #pragma HLS UNROLL
-           for(loop k=0; k<CRYSTAL_IN_PHI+4; k++){
-                        #pragma HLS UNROLL
-            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2 && k<=seed_phi+2)  temp[i][k].energy = 0 ;
-         }}
 
-        if(cluster_tmp.brems == 1){
-        for(loop i=0; i<CRYSTAL_IN_ETA+4; i++){
-                        #pragma HLS UNROLL
-           for(loop k=0; k<CRYSTAL_IN_PHI+4; k++){
-                        #pragma HLS UNROLL
-            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2-5 && k<=seed_phi+2-5)  temp[i][k].energy = 0 ;
-                        }
-                }
-         }
+return cluster_tmp ;
+}
 
-        if(cluster_tmp.brems == 2){
-        for(loop i=0; i<CRYSTAL_IN_ETA+4; i++){
-                        #pragma HLS UNROLL
-           for(loop k=0; k<CRYSTAL_IN_PHI+4; k++){
-                        #pragma HLS UNROLL
-            if(i>=seed_eta-1 && i<=seed_eta+1 && k>=seed_phi-2+5 && k<=seed_phi+2+5)  temp[i][k].energy = 0 ;
-         }}}
+
+Cluster getRegion3x4(crystal temp[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI]){
+#pragma HLS ARRAY_PARTITION variable=temp complete dim=0
+//#pragma HLS PIPELINE II=2
+#pragma HLS latency min=24
+
+Cluster returnCluster;
+clusterInfo cluster_tmp;
+clusterInfo cluster_tmpCenter;
+clusterInfo cluster_tmpBneg;
+clusterInfo cluster_tmpBpos;
+
+ecalRegion_t ecalRegion;
+
+        ecalRegion = initStructure(temp) ;
+
+        cluster_tmp = getClusterPosition(ecalRegion) ;
+
+        ap_uint<5> seed_phi = cluster_tmp.phiMax ;
+        ap_uint<5> seed_eta = cluster_tmp.etaMax ;
+
+        cluster_tmpCenter = getClusterValues(temp, seed_eta, seed_phi) ;
+        cluster_tmpBneg = getBremsValuesNeg(temp, seed_eta, seed_phi) ;
+        cluster_tmpBpos = getBremsValuesPos(temp, seed_eta, seed_phi) ;
+
+        cluster_tmp.energy = cluster_tmpCenter.energy;
+
+        cluster_tmp.brems = 0 ;
+
+         if(cluster_tmpBneg.energy > cluster_tmpCenter.energy/8 && cluster_tmpBneg.energy > cluster_tmpBpos.energy) {
+            cluster_tmp.energy = cluster_tmpCenter.energy + cluster_tmpBneg.energy ; cluster_tmp.brems = 1 ; }
+         else if(cluster_tmpBpos.energy > cluster_tmpCenter.energy/8){
+            cluster_tmp.energy = cluster_tmpCenter.energy + cluster_tmpBpos.energy ; cluster_tmp.brems = 2 ; }
+
+//eta, phi, seed energy in cluster_tmp; energy and brems in cluster_tmp1
 
         returnCluster = packCluster(cluster_tmp.energy, cluster_tmp.etaMax, cluster_tmp.phiMax);
-//        ecalRegion = initStructure(temp); // this is the issue we try to reset array temp
-//        cluster_tmp = getClusterPosition(ecalRegion); // this is the issue
-//        region3x4.cluster1.energy = cluster_tmp.seedEnergy;
+
+        RemoveTmp(temp, seed_eta, seed_phi, cluster_tmp.brems ) ;
+
 
 return returnCluster;
 }
 
-void algo_top(hls::stream<algo::axiword> link_in[N_INPUT_LINKS], hls::stream<algo::axiword> link_out[N_OUTPUT_LINKS]){
+/*void  dummy_delay(Cluster In[Nbclusters], Cluster Out[Nbclusters]){
+#pragma HLS ARRAY_PARTITION variable=In complete dim=0
+#pragma HLS ARRAY_PARTITION variable=Out complete dim=0
+#pragma HLS latency min=2
 
+for (loop i=0; i<Nbclusters; i++){
+        Out[i] = Cluster(In[i].clusterEnergy(), In[i].towerEta(), In[i].towerPhi() , In[i].clusterEta() , In[i].clusterPhi(), In[i].satur() );
+}
+
+
+}*/
+
+void algo_top(hls::stream<algo::axiword384> link_in[N_INPUT_LINKS], hls::stream<algo::axiword384> link_out[N_OUTPUT_LINKS]){
+
+#pragma HLS latency min=100
 #pragma HLS INTERFACE axis port=link_in
 #pragma HLS INTERFACE axis port=link_out
 #pragma HLS PIPELINE II=6
@@ -743,196 +968,161 @@ towerHCAL region4x4_1[HCAL_TOWER_IN_ETA][HCAL_TOWER_IN_PHI], region4x4_2[HCAL_TO
 #pragma HLS ARRAY_PARTITION variable=region4x4_1 complete dim=0
 #pragma HLS ARRAY_PARTITION variable=region4x4_2 complete dim=0
 
-crystal temporary[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4];
+crystal temporary[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI];
 #pragma HLS ARRAY_PARTITION variable=temporary complete dim=0
 
-crystal temporary1[CRYSTAL_IN_ETA+4][CRYSTAL_IN_PHI+4];
+crystal temporary1[CRYSTAL_IN_ETA][CRYSTAL_IN_PHI];
 #pragma HLS ARRAY_PARTITION variable=temporary1 complete dim=0
 
-//creating 2 15x20 crsytals temporary and temporary1 and 2 4x4 HCAL towers
+//creating 2 15x20 crystals temporary and temporary1
 
 processInputLinks(link_in, temporary, temporary1, region4x4_1, region4x4_2);
 
 region3x4_t forTower_1, forTower_2;
-Cluster sort_clusterIn[N];
-Cluster sort_clusterOut[N];
-Cluster unselCluster[5];
+Cluster forCluster;
+Cluster sort_clusterIn[Nbclusters];
+Cluster sort_clusterOut[Nbclusters];
 
 tower_t towerEt[24];
 
 #pragma HLS ARRAY_PARTITION variable=sort_clusterIn complete dim=0
 #pragma HLS ARRAY_PARTITION variable=sort_clusterOut complete dim=0
-#pragma HLS ARRAY_PARTITION variable=unselCluster complete dim=0
 #pragma HLS ARRAY_PARTITION variable=towerEt complete dim=0
 
-        
+
         sort_clusterIn[0] = getRegion3x4(temporary);
         sort_clusterIn[1] = getRegion3x4(temporary);
         sort_clusterIn[2] = getRegion3x4(temporary);
         sort_clusterIn[3] = getRegion3x4(temporary);
-        sort_clusterIn[4] = getRegion3x4(temporary);
+//        sort_clusterIn[4] = getRegion3x4(temporary);
 
-        Cluster forCluster1 =  getRegion3x4(temporary1);
-        ap_uint<5> towerEta1 = forCluster1.towerEta() + 3;
-        sort_clusterIn[5] = Cluster(forCluster1.clusterEnergy(), towerEta1, forCluster1.towerPhi(), forCluster1.clusterEta(), forCluster1.clusterPhi(), forCluster1.satur());
 
-        Cluster forCluster2 =  getRegion3x4(temporary1);
-        ap_uint<5> towerEta2 = forCluster2.towerEta() + 3;
-        sort_clusterIn[6] = Cluster(forCluster2.clusterEnergy(), towerEta2, forCluster2.towerPhi(), forCluster2.clusterEta(), forCluster2.clusterPhi(), forCluster2.satur());
+        forCluster =  getRegion3x4(temporary1);
+        ap_uint<5> towerEta1 = forCluster.towerEta() + 3;
+        sort_clusterIn[4] = Cluster(forCluster.clusterEnergy(), towerEta1, forCluster.towerPhi(), forCluster.clusterEta(), forCluster.clusterPhi(), forCluster.satur());
 
-        Cluster forCluster3 =  getRegion3x4(temporary1);
-        ap_uint<5> towerEta3 = forCluster3.towerEta() + 3;
-        sort_clusterIn[7] = Cluster(forCluster3.clusterEnergy(), towerEta3, forCluster3.towerPhi(), forCluster3.clusterEta(), forCluster3.clusterPhi(), forCluster3.satur());
+        forCluster =  getRegion3x4(temporary1);
+        ap_uint<5> towerEta2 = forCluster.towerEta() + 3;
+        sort_clusterIn[5] = Cluster(forCluster.clusterEnergy(), towerEta2, forCluster.towerPhi(), forCluster.clusterEta(), forCluster.clusterPhi(), forCluster.satur());
 
-        Cluster forCluster4 =  getRegion3x4(temporary1);
-        ap_uint<5> towerEta4 = forCluster4.towerEta() + 3;
-        sort_clusterIn[8] = Cluster(forCluster4.clusterEnergy(), towerEta4, forCluster4.towerPhi(), forCluster4.clusterEta(), forCluster4.clusterPhi(), forCluster4.satur());
+        forCluster =  getRegion3x4(temporary1);
+        ap_uint<5> towerEta3 = forCluster.towerEta() + 3;
+        sort_clusterIn[6] = Cluster(forCluster.clusterEnergy(), towerEta3, forCluster.towerPhi(), forCluster.clusterEta(), forCluster.clusterPhi(), forCluster.satur());
 
-        Cluster forCluster5 =  getRegion3x4(temporary1);
-        ap_uint<5> towerEta5 = forCluster5.towerEta() + 3;
-        sort_clusterIn[9] = Cluster(forCluster5.clusterEnergy(), towerEta5, forCluster5.towerPhi(), forCluster5.clusterEta(), forCluster5.clusterPhi(), forCluster5.satur());
+        forCluster =  getRegion3x4(temporary1);
+        ap_uint<5> towerEta4 = forCluster.towerEta() + 3;
+        sort_clusterIn[7] = Cluster(forCluster.clusterEnergy(), towerEta4, forCluster.towerPhi(), forCluster.clusterEta(), forCluster.clusterPhi(), forCluster.satur());
+
+ /*       forCluster =  getRegion3x4(temporary1);
+        ap_uint<5> towerEta5 = forCluster.towerEta() + 3;
+        sort_clusterIn[9] = Cluster(forCluster.clusterEnergy(), towerEta5, forCluster.towerPhi(), forCluster.clusterEta(), forCluster.clusterPhi(), forCluster.satur());
+*/
         
-// sorting of 10 clusters
+// sorting of 8 clusters
 
-        bitonicSort16(sort_clusterIn, sort_clusterOut);
+        bitonicSort8(sort_clusterIn, sort_clusterOut);
 
-// merging towerEt with cluterEt
+        //dummy_delay(sort_clusterIn, sort_clusterOut) ;
+        
+        ap_uint<12> towerEtHCAL1[12];
+        ap_uint<12> towerEtHCAL2[12];
+        #pragma HLS ARRAY_PARTITION variable=towerEtHCAL1 complete dim=0
+        #pragma HLS ARRAY_PARTITION variable=towerEtHCAL2 complete dim=0
 
-        for(loop i=0; i<5; i++){
+        towerEtHCAL1[0] = region4x4_1[0][0].et ; towerEtHCAL1[1] = region4x4_1[0][1].et ; towerEtHCAL1[2] = region4x4_1[0][2].et ; towerEtHCAL1[3] = region4x4_1[0][3].et ;
+        towerEtHCAL1[4] = region4x4_1[1][0].et ; towerEtHCAL1[5] = region4x4_1[1][1].et ; towerEtHCAL1[6] = region4x4_1[1][2].et ; towerEtHCAL1[7] = region4x4_1[1][3].et ;
+        towerEtHCAL1[8] = region4x4_1[2][0].et ; towerEtHCAL1[9] = region4x4_1[2][1].et ; towerEtHCAL1[10] = region4x4_1[2][2].et ; towerEtHCAL1[11] = region4x4_1[2][3].et ;
+
+        towerEtHCAL2[0] = region4x4_1[3][0].et ; towerEtHCAL2[1] = region4x4_1[3][1].et ; towerEtHCAL2[2] = region4x4_1[3][2].et ; towerEtHCAL2[3] = region4x4_1[3][3].et ;
+        towerEtHCAL2[4] = region4x4_2[0][0].et ; towerEtHCAL2[5] = region4x4_2[0][1].et ; towerEtHCAL2[6] = region4x4_2[0][2].et ; towerEtHCAL2[7] = region4x4_2[0][3].et ;
+        towerEtHCAL2[8] = region4x4_2[1][0].et ; towerEtHCAL2[9] = region4x4_2[1][1].et ; towerEtHCAL2[10] = region4x4_2[1][2].et ; towerEtHCAL2[11] = region4x4_2[1][3].et ;
+
+        ap_uint<12> towerEtECAL1[12];
+        ap_uint<12> towerEtECAL2[12];
+        #pragma HLS ARRAY_PARTITION variable=towerEtECAL1 complete dim=0
+        #pragma HLS ARRAY_PARTITION variable=towerEtECAL2 complete dim=0
+
+        getTowerEt(temporary, towerEtECAL1);
+        getTowerEt(temporary1, towerEtECAL2);
+
+        ap_uint<12> SumEH ;
+        for(loop i=0; i<12; i++){
                 #pragma HLS UNROLL
-                unselCluster[i] = sort_clusterOut[i+6];
+        SumEH = towerEtECAL1[i]+towerEtHCAL1[i] ;
+        towerEt[i] = tower_t(SumEH, 0, 0);
+        SumEH = towerEtECAL2[i]+towerEtHCAL2[i] ;
+        towerEt[i+12] = tower_t(SumEH, 0, 0);
         }
-       
-        forTower_1 = getTowerEt(temporary, unselCluster);
 
-        ap_uint<12> towerEt_0 = forTower_1.tower0.et() + region4x4_1[0][0].towerEt;
-        towerEt[0] = tower_t(towerEt_0, forTower_1.tower0.hoe(), forTower_1.tower0.satur());
-
-        ap_uint<12> towerEt_1 = forTower_1.tower1.et() + region4x4_1[0][1].towerEt;
-        towerEt[1] = tower_t(towerEt_1, forTower_1.tower1.hoe(), forTower_1.tower1.satur());
-
-        ap_uint<12> towerEt_2 = forTower_1.tower2.et() + region4x4_1[0][2].towerEt;
-        towerEt[2] = tower_t(towerEt_2, forTower_1.tower2.hoe(), forTower_1.tower2.satur());
-
-        ap_uint<12> towerEt_3 = forTower_1.tower3.et() + region4x4_1[0][3].towerEt;
-        towerEt[3] = tower_t(towerEt_3, forTower_1.tower3.hoe(), forTower_1.tower3.satur());
-
-        ap_uint<12> towerEt_4 = forTower_1.tower4.et() + region4x4_1[1][0].towerEt;
-        towerEt[4] = tower_t(towerEt_4, forTower_1.tower4.hoe(), forTower_1.tower4.satur());
-
-        ap_uint<12> towerEt_5 = forTower_1.tower5.et() + region4x4_1[1][1].towerEt;
-        towerEt[5] = tower_t(towerEt_5, forTower_1.tower5.hoe(), forTower_1.tower5.satur());
-        
-        ap_uint<12> towerEt_6 = forTower_1.tower6.et() + region4x4_1[1][2].towerEt;
-        towerEt[6] = tower_t(towerEt_6, forTower_1.tower6.hoe(), forTower_1.tower6.satur());
-
-        ap_uint<12> towerEt_7 = forTower_1.tower7.et() + region4x4_1[1][3].towerEt;
-        towerEt[7] = tower_t(towerEt_7, forTower_1.tower7.hoe(), forTower_1.tower7.satur());
-
-        ap_uint<12> towerEt_8 = forTower_1.tower8.et() + region4x4_1[2][0].towerEt;
-        towerEt[8] = tower_t(towerEt_8, forTower_1.tower8.hoe(), forTower_1.tower8.satur());
-
-        ap_uint<12> towerEt_9 = forTower_1.tower9.et() + region4x4_1[2][1].towerEt;
-        towerEt[9] = tower_t(towerEt_9, forTower_1.tower9.hoe(), forTower_1.tower9.satur());
-
-        ap_uint<12> towerEt_10 = forTower_1.tower10.et() + region4x4_1[2][2].towerEt;
-        towerEt[10] = tower_t(towerEt_10, forTower_1.tower10.hoe(), forTower_1.tower10.satur());
-
-        ap_uint<12> towerEt_11 = forTower_1.tower11.et() + region4x4_1[2][3].towerEt;
-        towerEt[11] = tower_t(towerEt_11, forTower_1.tower11.hoe(), forTower_1.tower11.satur());
-
-        forTower_2 = getTowerEt(temporary1, unselCluster);
-
-        ap_uint<12> towerEt_12 = forTower_2.tower0.et() + region4x4_1[3][0].towerEt;
-        towerEt[12] = tower_t(towerEt_12, forTower_2.tower0.hoe(), forTower_2.tower0.satur());
-
-        ap_uint<12> towerEt_13 = forTower_2.tower1.et() + region4x4_1[3][1].towerEt;
-        towerEt[13] = tower_t(towerEt_13, forTower_2.tower1.hoe(), forTower_2.tower1.satur());
-
-        ap_uint<12> towerEt_14 = forTower_2.tower2.et() + region4x4_1[3][2].towerEt;
-        towerEt[14] = tower_t(towerEt_14, forTower_2.tower2.hoe(), forTower_2.tower2.satur());
-
-        ap_uint<12> towerEt_15 = forTower_2.tower3.et() + region4x4_1[3][3].towerEt;
-        towerEt[15] = tower_t(towerEt_15, forTower_2.tower3.hoe(), forTower_2.tower3.satur());
-
-        ap_uint<12> towerEt_16 = forTower_2.tower4.et() + region4x4_2[0][0].towerEt;
-        towerEt[16] = tower_t(towerEt_16, forTower_2.tower4.hoe(), forTower_2.tower4.satur());
-
-        ap_uint<12> towerEt_17 = forTower_2.tower5.et() + region4x4_2[0][1].towerEt;
-        towerEt[17] = tower_t(towerEt_17, forTower_2.tower5.hoe(), forTower_2.tower5.satur());
-        
-        ap_uint<12> towerEt_18 = forTower_2.tower6.et() + region4x4_2[0][2].towerEt;
-        towerEt[18] = tower_t(towerEt_18, forTower_2.tower6.hoe(), forTower_2.tower6.satur());
-
-        ap_uint<12> towerEt_19 = forTower_2.tower7.et() + region4x4_2[0][3].towerEt;
-        towerEt[19] = tower_t(towerEt_19, forTower_2.tower7.hoe(), forTower_2.tower7.satur());
-
-        ap_uint<12> towerEt_20 = forTower_2.tower8.et() + region4x4_2[1][0].towerEt;
-        towerEt[20] = tower_t(towerEt_20, forTower_2.tower8.hoe(), forTower_2.tower8.satur());
-
-        ap_uint<12> towerEt_21 = forTower_2.tower9.et() + region4x4_2[1][1].towerEt;
-        towerEt[21] = tower_t(towerEt_21, forTower_2.tower9.hoe(), forTower_2.tower9.satur());
-
-        ap_uint<12> towerEt_22 = forTower_2.tower10.et() + region4x4_2[1][2].towerEt;
-        towerEt[22] = tower_t(towerEt_22, forTower_2.tower10.hoe(), forTower_2.tower10.satur());
-
-        ap_uint<12> towerEt_23 = forTower_2.tower11.et() + region4x4_2[1][3].towerEt;
-        towerEt[23] = tower_t(towerEt_23, forTower_2.tower11.hoe(), forTower_2.tower11.satur());
-
-// packing output link
 
 size_t start=0;
-ap_uint<384> outWord_384b;
+ap_uint<384> outWord0_384b = 0;
+ap_uint<384> outWord1_384b = 0;
+ap_uint<384> outWord2_384b = 0;
+ap_uint<384> outWord3_384b = 0;
 
 //for link1
+
 for(loop oLink=0; oLink<6; oLink++){
         size_t end = start + 15;
-        outWord_384b.range(end, start) = towerEt[oLink];
+        outWord0_384b.range(end, start) = towerEt[oLink];
         start += 16;
 }
 
+
 for(loop oLink=0; oLink<2; oLink++){
         size_t end = start + 27;
-        outWord_384b.range(end, start) = sort_clusterOut[oLink+11];
+        outWord0_384b.range(end, start) = sort_clusterOut[oLink];
         start += 28;
 }
 
-processOutputLinks(link_out[0], outWord_384b); 
 
 //for link2
 start = 0;
 for(loop oLink=0; oLink<6; oLink++){
         size_t end = start + 15;
-        outWord_384b.range(end, start) = towerEt[oLink+6];
+        outWord1_384b.range(end, start) = towerEt[oLink+6];
         start += 16;
 }
 
-outWord_384b.range(123, 96) = sort_clusterOut[13];
-
-processOutputLinks(link_out[1], outWord_384b);
+for(loop oLink=2; oLink<4; oLink++){
+        size_t end = start + 27;
+        outWord1_384b.range(end, start) = sort_clusterOut[oLink];
+        start += 28;
+}
 
 // for link3
 start = 0;
 for(loop oLink=0; oLink<6; oLink++){
         size_t end = start + 15;
-        outWord_384b.range(end, start) = towerEt[oLink+12];
+        outWord2_384b.range(end, start) = towerEt[oLink+12];
         start += 16;
 }
 
-outWord_384b.range(123, 96) = sort_clusterOut[14];
-
-processOutputLinks(link_out[2], outWord_384b);
+for(loop oLink=4; oLink<6; oLink++){
+        size_t end = start + 27;
+        outWord2_384b.range(end, start) = sort_clusterOut[oLink];
+        start += 28;
+}
 
 // for link4
 start = 0;
 for(loop oLink=0; oLink<6; oLink++){
         size_t end = start + 15;
-        outWord_384b.range(end, start) = towerEt[oLink+18];
+        outWord3_384b.range(end, start) = towerEt[oLink+18];
         start += 16;
 }
 
-outWord_384b.range(123, 96) = sort_clusterOut[15];
-
-processOutputLinks(link_out[3], outWord_384b);
+for(loop oLink=6; oLink<8; oLink++){
+        size_t end = start + 27;
+        outWord3_384b.range(end, start) = sort_clusterOut[oLink];
+        start += 28;
 }
 
+
+processOutputLinks(link_out[0], outWord0_384b);
+processOutputLinks(link_out[1], outWord1_384b);
+processOutputLinks(link_out[2], outWord2_384b);
+processOutputLinks(link_out[3], outWord3_384b);
+
+}

@@ -5,7 +5,6 @@
 #include <ap_axi_sdata.h>
 #include <hls_stream.h>
 #include "ap_int.h"
-//#include "ap_utils.h"
 #include <algorithm>
 #include <utility>
 #include <stdint.h>
@@ -16,12 +15,17 @@
 #define TOWER_IN_ETA 3
 #define TOWER_IN_PHI 4
 #define N_INPUT_LINKS 26
+#define N_INPUT_LINKS_ECAL 12
+#define N_INPUT_LINKS_HCAL 2
+#define N_INPUT_LINKS 26
 #define N_OUTPUT_LINKS 4
 #define CRYSTAL_IN_TOWER 25
 #define HCAL_TOWER_IN_ETA 4
 #define HCAL_TOWER_IN_PHI 4
 
+
 typedef ap_uint<5> loop;
+typedef ap_uint<6> loop6;
 
 using namespace std;
 
@@ -140,7 +144,6 @@ struct ap_axiu <D, U, 0, 0>{
 };
 
 namespace algo {
-	typedef ap_axiu<384, 8, 0, 0> axiword;
 	typedef ap_axiu<32, 8, 0, 0> axiword32;
 	typedef ap_axiu<64, 8, 0, 0> axiword64;
 	typedef ap_axiu<256, 8, 0, 0> axiword256;
@@ -151,7 +154,7 @@ namespace algo {
 	typedef ap_axiu<576, 8, 0, 0> axiword576;
 }
 
-void algo_top(hls::stream<algo::axiword> link_in[N_INPUT_LINKS], hls::stream<algo::axiword> link_out[N_OUTPUT_LINKS]);
+void algo_top(hls::stream<algo::axiword384> link_in[N_INPUT_LINKS], hls::stream<algo::axiword384> link_out[N_OUTPUT_LINKS]);
 
 typedef struct {
     ap_uint<10> energy;
@@ -246,22 +249,22 @@ class tower_t {
 
 class towerHCAL{
     public:
-    ap_uint<10> towerEt;
+    ap_uint<10> et;
     ap_uint<6> fb;
 
     towerHCAL(){
-        towerEt = 0;
+        et = 0;
         fb = 0;
     }
 
     towerHCAL& operator=(const towerHCAL& rhs){
-        towerEt = rhs.towerEt;
+        et = rhs.et;
         fb = rhs.fb;
         return *this;
     }
 
     towerHCAL(ap_uint<16> i){
-        this->towerEt = i.range(9, 0);
+        this->et = i.range(9, 0);
     	this->fb = i.range(15, 10);
     }
 };
@@ -281,5 +284,10 @@ tower_t tower10 ;
 tower_t tower11 ;
 } region3x4_t ;
 
-#endif
 
+typedef struct {
+ap_uint<12> et[3][4];
+} towers3x4_t ;
+
+
+#endif
